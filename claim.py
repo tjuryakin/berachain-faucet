@@ -117,7 +117,7 @@ def claim(address, proxy_options):
     logger.info(f'Start claim {address}')
 
     chrome_options = webdriver.ChromeOptions()
-    #chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--use_subprocess")
     chrome_options.add_argument('--no-sandbox')
 
