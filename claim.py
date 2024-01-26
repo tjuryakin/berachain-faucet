@@ -119,6 +119,7 @@ def claim(address, proxy_options):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--use_subprocess")
+    chrome_options.add_argument('--no-sandbox')
 
     logger.info(f'Open browser {address} and wait 2 seconds')
     browser = webdriver.Chrome(options=chrome_options, seleniumwire_options=proxy_options)
