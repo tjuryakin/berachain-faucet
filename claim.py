@@ -1,10 +1,12 @@
 import time
 import random
+import requests
 
 from loguru import logger
 from seleniumwire import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementClickInterceptedException
 from twocaptcha import TwoCaptcha
 from ezcaptcha import EzCaptcha
 
@@ -14,7 +16,9 @@ from settings import (
     PROVIDER_CAPTCHA,
     API_KEY,
     ACCOUNT_FILE,
-    PROXY_FILE
+    PROXY_FILE,
+    CHANGE_IP,
+    CHANGE_IP_URL
 )
 
 
@@ -90,7 +94,9 @@ def get_result(browser, retry):
         browser.find_element(By.CSS_SELECTOR, '.bg-success')
         return True
     except NoSuchElementException:
-        logger.warning('Retry get claim status. Wait 3 seconds')
+        logger.warning('Retry get claim status. Wait 10 seconds')
+
+        time.sleep(7)
 
         if retry:
             get_result(browser, False)
@@ -121,8 +127,24 @@ def claim(address, proxy_options):
 
     # agree terms
     logger.info(f'Agree terms and wait 1 seconds')
-    browser.find_element(By.CSS_SELECTOR, '[data-state="unchecked"]').click()
-    browser.find_element(By.CSS_SELECTOR, '[data-state="open"] button.bg-primary').click()
+    try:
+        browser.find_element(By.CSS_SELECTOR, '[data-state="unchecked"]').click()
+    except ElementClickInterceptedException:
+        logger.error('Current IP not access denied')
+        browser.quit()
+        return False
+
+    try:
+        browser.find_element(By.CSS_SELECTOR, '[data-state="open"] button.bg-primary').click()
+    except ElementClickInterceptedException:
+        logger.error('Agree error')
+
+        if SAVE_CLAIM_RESULT_SCREENSHOT:
+            browser.save_screenshot(f'agree_error_{time.time()}.png')
+
+        browser.quit()
+        return False
+
     time.sleep(1)
 
     # first button
@@ -136,13 +158,16 @@ def claim(address, proxy_options):
 
     if not token:
         browser.close()
+        return False
 
     script = """
         ___grecaptcha_cfg.clients['100000']['T']['T']['promise-callback']('%s')
     """ % token
 
     browser.execute_script(script)  # run callback captcha (for safety)
-    logger.info(f'Resolved captcha')
+    logger.info(f'Resolved captcha and wait 3 seconds...')
+
+    time.sleep(3)
 
     # second button
     browser.find_element(By.CSS_SELECTOR, 'button.bg-primary').click()
@@ -164,6 +189,7 @@ def claim(address, proxy_options):
         browser.save_screenshot(f'{address}.png')
 
     browser.quit()
+    return True
 
 
 if __name__ == '__main__':
@@ -185,3 +211,6 @@ if __name__ == '__main__':
         sleep_time = random.randint(40, 80)
         logger.info(f'Pause. Wait next wallet {sleep_time} seconds')
         time.sleep(sleep_time)
+
+        if CHANGE_IP:
+            requests.get(CHANGE_IP_URL)
