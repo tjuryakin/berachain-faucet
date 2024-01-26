@@ -4,6 +4,8 @@
 pip install -r requirements.txt
 ```
 
+Implemented through browser emulation, since the Berachain developers block all other solutions.
+
 ### Supported captcha services
 
 - 2captcha：[2captcha](https://2captcha.com/?from=3837782)
