@@ -117,7 +117,7 @@ def claim(address, proxy_options):
     logger.info(f'Start claim {address}')
 
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
+    #chrome_options.add_argument("--headless")
     chrome_options.add_argument("--use_subprocess")
     chrome_options.add_argument('--no-sandbox')
 
@@ -132,6 +132,10 @@ def claim(address, proxy_options):
         browser.find_element(By.CSS_SELECTOR, '[data-state="unchecked"]').click()
     except ElementClickInterceptedException:
         logger.error('Current IP not access denied')
+        browser.quit()
+        return False
+    except NoSuchElementException:
+        logger.error('Site unavailable')
         browser.quit()
         return False
 
