@@ -7,6 +7,7 @@ from seleniumwire import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import WebDriverException
 from twocaptcha import TwoCaptcha
 from ezcaptcha import EzCaptcha
 
@@ -129,7 +130,13 @@ def claim(address):
 
     logger.info(f'Open browser {address} and wait 2 seconds')
 
-    browser.get('http://artio.faucet.berachain.com/')
+    try:
+        browser.get('http://artio.faucet.berachain.com/')
+    except WebDriverException:
+        logger.error('Connection failed. Wait 3 min and retry')
+        time.sleep(180)
+        browser.quit()
+        return False
 
     # agree terms
     logger.info(f'Agree terms and wait 1 seconds')
@@ -216,7 +223,7 @@ if __name__ == '__main__':
 
     for address in addresses:
         claim(address.strip())
-        sleep_time = random.randint(45, 75)
+        sleep_time = random.randint(5, 20)
         logger.info(f'Pause. Wait next wallet {sleep_time} seconds')
         time.sleep(sleep_time)
 
