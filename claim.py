@@ -113,18 +113,23 @@ def get_proxy_options(proxy, proxy_type='http', verify=False):
     }
 
 
-def claim(address, proxy_options):
+def claim(address):
     logger.info(f'Start claim {address}')
+
+    proxy = random.choice(get_proxies())
+    proxy_options = get_proxy_options(proxy.strip())
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--use_subprocess")
     chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--incognito')
+
+    browser = webdriver.Chrome(options=chrome_options, seleniumwire_options=proxy_options)
 
     logger.info(f'Open browser {address} and wait 2 seconds')
-    browser = webdriver.Chrome(options=chrome_options, seleniumwire_options=proxy_options)
-    browser.get('https://artio.faucet.berachain.com/')
-    time.sleep(2)
+
+    browser.get('http://artio.faucet.berachain.com/')
 
     # agree terms
     logger.info(f'Agree terms and wait 1 seconds')
@@ -162,7 +167,7 @@ def claim(address, proxy_options):
     token = get_captcha_token()
 
     if not token:
-        browser.close()
+        browser.quit()
         return False
 
     script = """
@@ -194,7 +199,6 @@ def claim(address, proxy_options):
         browser.save_screenshot(f'{address}.png')
 
     browser.quit()
-    return True
 
 
 if __name__ == '__main__':
@@ -206,14 +210,12 @@ if __name__ == '__main__':
     if SAVE_LOG_FILE:
         logger.add('claim.log')
 
-    proxies = get_proxies()
-    proxy = random.choice(proxies)
-    proxy_options = get_proxy_options(proxy.strip())
+
     addresses = get_addresses()
 
     for address in addresses:
-        claim(address.strip(), proxy_options)
-        sleep_time = random.randint(40, 80)
+        claim(address.strip())
+        sleep_time = random.randint(45, 75)
         logger.info(f'Pause. Wait next wallet {sleep_time} seconds')
         time.sleep(sleep_time)
 
