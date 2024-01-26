@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import WebDriverException
+from requests.exceptions import SSLError
 from twocaptcha import TwoCaptcha
 from ezcaptcha import EzCaptcha
 
@@ -228,4 +229,9 @@ if __name__ == '__main__':
         time.sleep(sleep_time)
 
         if CHANGE_IP:
-            requests.get(CHANGE_IP_URL)
+            try:
+                requests.get(CHANGE_IP_URL)
+            except SSLError:
+                logger.info('Error SSL change IP url addr. Wait 2 minutes')
+                time.sleep(120)
+                requests.get(CHANGE_IP_URL)
