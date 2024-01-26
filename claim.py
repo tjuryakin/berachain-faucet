@@ -212,6 +212,7 @@ if __name__ == '__main__':
 
 
     addresses = get_addresses()
+    random.shuffle(addresses)
 
     for address in addresses:
         claim(address.strip())
