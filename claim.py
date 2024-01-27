@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import JavascriptException
 from requests.exceptions import SSLError
 from twocaptcha import TwoCaptcha
 from ezcaptcha import EzCaptcha
@@ -182,7 +183,13 @@ def claim(address):
         ___grecaptcha_cfg.clients['100000']['T']['T']['promise-callback']('%s')
     """ % token
 
-    browser.execute_script(script)  # run callback captcha (for safety)
+    try:
+        browser.execute_script(script)  # run callback captcha (for safety)
+    except JavascriptException:
+        logger.error('Error execute javascript script - callback')
+        browser.quit()
+        return False
+
     logger.info(f'Resolved captcha and wait 3 seconds...')
 
     time.sleep(3)
