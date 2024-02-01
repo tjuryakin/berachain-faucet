@@ -180,7 +180,7 @@ def claim(address):
         return False
 
     script = """
-        ___grecaptcha_cfg.clients['100000']['T']['T']['promise-callback']('%s')
+        ___grecaptcha_cfg.clients['100000']['D']['D']['promise-callback']('%s')
     """ % token
 
     try:
