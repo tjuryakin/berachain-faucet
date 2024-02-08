@@ -229,7 +229,7 @@ return findRecaptchaClients();
         execute_result = browser.execute_script(find_captcha_script)
         callback_function = execute_result[0]['callback']
     except JavascriptException:
-        logger.error('Error execute javascript script - callback')
+        logger.error('Error execute javascript script - get callback')
         browser.quit()
         return False
 
@@ -246,7 +246,7 @@ return findRecaptchaClients();
     try:
         browser.execute_script(script)  # run callback captcha (for safety)
     except JavascriptException:
-        logger.error('Error execute javascript script - callback')
+        logger.error('Error execute javascript script - run callback')
         browser.quit()
         return False
 
