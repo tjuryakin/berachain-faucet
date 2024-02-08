@@ -128,7 +128,10 @@ def claim(address):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--incognito')
 
-    browser = webdriver.Chrome(options=chrome_options, seleniumwire_options=proxy_options)
+    browser = webdriver.Chrome(
+        options=chrome_options,
+        seleniumwire_options=proxy_options
+    )
 
     logger.info(f'Open browser {address} and wait 2 seconds')
 
@@ -168,8 +171,67 @@ def claim(address):
 
     # first button
     browser.find_element(By.CSS_SELECTOR, 'input:first-child').send_keys(address)
-    browser.find_element(By.CSS_SELECTOR, 'button.bg-primary').click()
-    logger.info(f'First button clicked')
+
+    try:
+        browser.find_element(By.CSS_SELECTOR, 'button.bg-primary').click()
+        logger.info(f'First button clicked')
+    except ElementClickInterceptedException:
+        logger.info('First button click error')
+
+        if SAVE_CLAIM_RESULT_SCREENSHOT:
+            browser.save_screenshot(f'first_button_error_{time.time()}.png')
+
+        browser.quit()
+        return False
+
+    find_captcha_script = """
+function findRecaptchaClients() {
+  if (typeof (___grecaptcha_cfg) !== 'undefined') {
+    return Object.entries(___grecaptcha_cfg.clients).map(([cid, client]) => {
+      const data = { id: cid, version: cid >= 10000 ? 'V3' : 'V2' };
+      const objects = Object.entries(client).filter(([_, value]) => value && typeof value === 'object');
+
+      objects.forEach(([toplevelKey, toplevel]) => {
+        const found = Object.entries(toplevel).find(([_, value]) => (
+          value && typeof value === 'object' && 'sitekey' in value && 'size' in value
+        ));
+     
+        if (typeof toplevel === 'object' && toplevel instanceof HTMLElement && toplevel['tagName'] === 'DIV'){
+            data.pageurl = toplevel.baseURI;
+        }
+        
+        if (found) {
+          const [sublevelKey, sublevel] = found;
+
+          data.sitekey = sublevel.sitekey;
+          const callbackKey = data.version === 'V2' ? 'callback' : 'promise-callback';
+          const callback = sublevel[callbackKey];
+          if (!callback) {
+            data.callback = null;
+            data.function = null;
+          } else {
+            data.function = callback;
+            const keys = [cid, toplevelKey, sublevelKey, callbackKey].map((key) => `['${key}']`).join('');
+            data.callback = `___grecaptcha_cfg.clients${keys}`;
+          }
+        }
+      });
+      return data;
+    });
+  }
+  return [];
+}
+
+return findRecaptchaClients();
+    """
+
+    try:
+        execute_result = browser.execute_script(find_captcha_script)
+        callback_function = execute_result[0]['callback']
+    except JavascriptException:
+        logger.error('Error execute javascript script - callback')
+        browser.quit()
+        return False
 
     # resolve captcha
     logger.info(f'Wait resolve captcha...')
@@ -179,9 +241,7 @@ def claim(address):
         browser.quit()
         return False
 
-    script = """
-        ___grecaptcha_cfg.clients['100000']['D']['D']['promise-callback']('%s')
-    """ % token
+    script = f'{callback_function}("{token}")'
 
     try:
         browser.execute_script(script)  # run callback captcha (for safety)
@@ -195,8 +255,17 @@ def claim(address):
     time.sleep(3)
 
     # second button
-    browser.find_element(By.CSS_SELECTOR, 'button.bg-primary').click()
-    logger.info(f'Second button clicked and wait 3 seconds')
+    try:
+        browser.find_element(By.CSS_SELECTOR, 'button.bg-primary').click()
+        logger.info(f'Second button clicked and wait 3 seconds')
+    except ElementClickInterceptedException:
+        logger.info('First button click error')
+
+        if SAVE_CLAIM_RESULT_SCREENSHOT:
+            browser.save_screenshot(f'second_button_error_{time.time()}.png')
+
+        browser.quit()
+        return False
 
     claim_success = get_result(browser, True)
 
